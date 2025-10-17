@@ -68,6 +68,7 @@
             export RUST_BACKTRACE=1
             export PATH="$HOME/.cargo/bin:$PATH"
             rustc --version
+            cargo build
           '';
         };
       });
