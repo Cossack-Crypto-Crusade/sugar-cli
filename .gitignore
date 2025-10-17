@@ -5,3 +5,4 @@ sugar.log
 !autodoc.config.json
 test_item
 /.idea
+codeql-db

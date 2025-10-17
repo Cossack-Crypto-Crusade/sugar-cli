@@ -9,15 +9,19 @@
   outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;   # <<< enable unfree packages
+          };
+        };
 
         rustPlatform = pkgs.rustPlatform;
         src = pkgs.fetchFromGitHub {
           owner = "Cossack-Crypto-Crusade";
           repo = "sugar-cli";
-          rev = "main"; # you can pin a commit hash here
+          rev = "main"; # pin commit hash if desired
           # sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-          # ^ fill in once pinned; leave commented for local development
         };
 
       in {
@@ -47,7 +51,7 @@
           doCheck = false;
         };
 
-        # 🧰 Development environment
+        # 🧰 Default development environment
         devShells.default = pkgs.mkShell {
           name = "sugar-cli-dev";
 
@@ -55,6 +59,7 @@
             rustup
             pkg-config
             openssl
+            codeql
             libgit2
             cmake
             protobuf
@@ -70,6 +75,33 @@
             rustc --version
             cargo build
             cargo fmt
+          '';
+        };
+
+        # 🛡️ CodeQL analysis shell
+        devShells.codeql = pkgs.mkShell {
+          name = "sugar-cli-codeql";
+
+          buildInputs = with pkgs; [
+            rustup
+            codeql
+            cargo
+          ];
+
+          shellHook = ''
+            echo "🛡️ Setting up CodeQL analysis..."
+            
+            # Create CodeQL database if missing
+            if [ ! -d codeql-db ]; then
+              codeql database create codeql-db --language=rust --command="cargo build"
+            fi
+
+            # Run CodeQL security queries
+            codeql database analyze codeql-db ~/codeql-repo/rust/ql/src/Security/*.ql \
+              --format=sarif-latest \
+              --output=results.sarif
+
+            echo "✅ CodeQL analysis finished! See results.sarif"
           '';
         };
       });
