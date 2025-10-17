@@ -4,29 +4,31 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          config = {
-            allowUnfree = true;   # <<< enable unfree packages
-          };
+          overlays = [ rust-overlay.overlays.default ];
+          config.allowUnfree = true;
         };
 
-        rustPlatform = pkgs.rustPlatform;
+        # 🔒 Pin Rust to match rust-toolchain.toml
+        rust = pkgs.rust-bin.stable."1.68.0".default;
+
         src = pkgs.fetchFromGitHub {
           owner = "Cossack-Crypto-Crusade";
           repo = "sugar-cli";
-          rev = "main"; # pin commit hash if desired
+          rev = "main"; # Pin to specific commit if needed
           # sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
         };
 
       in {
         # 🧱 Buildable package output
-        packages.default = rustPlatform.buildRustPackage {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "sugar-cli";
           version = "unstable";
           inherit src;
@@ -47,16 +49,15 @@
             zlib
           ];
 
-          # optional: verify build
           doCheck = false;
         };
 
         # 🧰 Default development environment
         devShells.default = pkgs.mkShell {
-          name = "sugar-cli-dev";
+          name = "sugar-cli-dev-env";
 
           buildInputs = with pkgs; [
-            rustup
+            rust
             pkg-config
             openssl
             codeql
@@ -69,12 +70,9 @@
           ];
 
           shellHook = ''
-            echo "🧁 Entered Sugar CLI dev shell"
+            echo "🧁 Entered Sugar CLI dev shell (Rust 1.68.0)"
             export RUST_BACKTRACE=1
-            export PATH="$HOME/.cargo/bin:$PATH"
             rustc --version
-            cargo build
-            cargo fmt
           '';
         };
 
@@ -83,20 +81,18 @@
           name = "sugar-cli-codeql";
 
           buildInputs = with pkgs; [
-            rustup
+            rust
             codeql
             cargo
           ];
 
           shellHook = ''
             echo "🛡️ Setting up CodeQL analysis..."
-            
-            # Create CodeQL database if missing
+
             if [ ! -d codeql-db ]; then
               codeql database create codeql-db --language=rust --command="cargo build"
             fi
 
-            # Run CodeQL security queries
             codeql database analyze codeql-db ~/codeql-repo/rust/ql/src/Security/*.ql \
               --format=sarif-latest \
               --output=results.sarif
