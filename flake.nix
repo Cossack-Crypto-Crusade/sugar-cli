@@ -69,6 +69,7 @@
             export PATH="$HOME/.cargo/bin:$PATH"
             rustc --version
             cargo build
+            cargo fmt
           '';
         };
       });
