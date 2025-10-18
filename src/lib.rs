@@ -13,6 +13,7 @@ pub mod errors;
 pub mod freeze;
 pub mod guard;
 pub mod hash;
+pub mod import_nfts;
 pub mod launch;
 pub mod mint;
 pub mod parse;

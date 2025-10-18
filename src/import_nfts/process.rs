@@ -1,74 +1,70 @@
-use std::fs;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+};
+
+use crate::cache::{Cache, CacheItem, CacheItems, CacheProgram};
 use anyhow::{anyhow, Result};
-use reqwest::blocking::Client;
-use serde_json::{json, Value};
 
-use super::ImportNFTsArgs;
+/// Processes a list of Arweave metadata links and generates a sugar-style cache.json
+pub fn process_import(input_file: &Path, output_file: &Path) -> Result<()> {
+    // Open the input file
+    let file = File::open(input_file)
+        .map_err(|e| anyhow!("Failed to open input file: {}", e))?;
+    let reader = BufReader::new(file);
 
-/// Process the `import-nfts` command.
-/// Reads a list of metadata URLs, fetches each JSON,
-/// and generates a Candy Machine `cache.json`.
-pub fn process_import_nfts(args: ImportNFTsArgs) -> Result<()> {
-    let data = fs::read_to_string(&args.input)
-        .map_err(|e| anyhow!("Failed to read input file {:?}: {}", args.input, e))?;
+    // Temporary map to collect CacheItems
+    let mut items_map: HashMap<String, CacheItem> = HashMap::new();
 
-    let client = Client::new();
-    let mut entries = serde_json::Map::new();
-
-    for (i, line) in data.lines().enumerate() {
-        let url = line.trim();
-        if url.is_empty() {
+    for (index, line_result) in reader.lines().enumerate() {
+        let metadata_link = line_result
+            .map_err(|e| anyhow!("Failed to read line {}: {}", index + 1, e))?;
+        if metadata_link.trim().is_empty() {
             continue;
         }
 
-        println!("📦 Fetching metadata #{} from {}", i, url);
+        let name = format!("NFT #{}", index + 1);
 
-        let resp = client
-            .get(url)
-            .send()
-            .map_err(|e| anyhow!("Failed to fetch {}: {}", url, e))?;
-
-        if !resp.status().is_success() {
-            eprintln!("⚠️ Skipping {} (HTTP {})", url, resp.status());
-            continue;
-        }
-
-        let meta: Value = resp.json()
-            .map_err(|e| anyhow!("Invalid JSON at {}: {}", url, e))?;
-
-        let name = meta
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Unnamed");
-
-        let image_link = meta
-            .get("image")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-
-        entries.insert(
-            i.to_string(),
-            json!({
-                "name": name,
-                "image_link": image_link,
-                "metadata_link": url,
-                "onChain": false
-            }),
+        items_map.insert(
+            index.to_string(),
+            CacheItem {
+                name,
+                image_hash: String::new(),
+                image_link: String::new(),
+                metadata_hash: String::new(),
+                metadata_link,
+                on_chain: false,
+                animation_hash: None,
+                animation_link: None,
+            },
         );
     }
 
-    let cache = json!({
-        "program": {
-            "candyMachine": null,
-            "candyMachineCreator": null,
-            "collectionMint": null
-        },
-        "items": entries
-    });
+    // Convert HashMap into CacheItems (IndexMap wrapper)
+    let mut cache_items = CacheItems::new();
+    for (k, v) in items_map {
+        cache_items.insert(k, v);
+    }
 
-    fs::write(&args.output, serde_json::to_string_pretty(&cache)?)
-        .map_err(|e| anyhow!("Failed to write {:?}: {}", args.output, e))?;
+    // Build the final Cache (mutable for writing)
+    let mut cache = Cache {
+        program: CacheProgram::new(),
+        items: cache_items,
+        file_path: output_file.to_string_lossy().to_string(),
+    };
 
-    println!("✅ Successfully generated cache file at {:?}", args.output);
+    // Write cache to file
+    cache
+        .write_to_file(output_file)
+        .map_err(|e| anyhow!("Failed to write cache file: {}", e))?;
+
+    println!(
+        "✅ Imported {} NFTs into cache: {:?}",
+        cache.items.len(),
+        output_file
+    );
+
     Ok(())
 }
