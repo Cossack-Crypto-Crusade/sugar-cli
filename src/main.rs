@@ -29,6 +29,7 @@ use sugar_cli::{
         GuardWithdrawArgs,
     },
     hash::{process_hash, HashArgs},
+    import_nfts::{process_import_nfts_cmd, ImportNFTsArgs},
     launch::{process_launch, LaunchArgs},
     mint::{process_mint, MintArgs},
     parse::parse_sugar_errors,
@@ -424,6 +425,9 @@ async fn run() -> Result<()> {
                 priority_fee,
             })
             .await?
+        }
+        Commands::Import { import, output } => {
+            process_import_nfts_cmd(ImportNFTsArgs { import, output }).await?;
         }
         Commands::Mint {
             keypair,

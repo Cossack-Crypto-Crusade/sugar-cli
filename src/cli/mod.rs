@@ -136,6 +136,17 @@ pub enum Commands {
         skip_collection_prompt: bool,
     },
 
+    /// Import existing NFTs metadata links into a Sugar cache
+    Import {
+        /// Path to the text file containing Arweave metadata URLs.
+        #[clap(short, long, value_name = "FILE")]
+        import: std::path::PathBuf,
+
+        /// Path to the output cache file (e.g. ./cache.json)
+        #[clap(short, long, default_value = "cache.json", value_name = "CACHE")]
+        output: std::path::PathBuf,
+    },
+
     /// Mint one NFT from candy machine
     Mint {
         /// Path to the keypair file, uses Sol config or defaults to "~/.config/solana/id.json"

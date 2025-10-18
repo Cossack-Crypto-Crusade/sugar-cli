@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::path::PathBuf;
 
-use crate::import_nfts::process::process_import;
+pub use crate::import_nfts::process::process_import;
 
 pub mod process;
 
