@@ -303,6 +303,12 @@ pub enum Commands {
         cache: String,
     },
 
+    /// Interact with ArDrive storage service
+    Ardrive {
+        #[clap(subcommand)]
+        command: ArdriveCommand,
+    },
+
     /// Validate JSON metadata files
     Validate {
         /// Assets directory to upload, defaults to "assets"
@@ -369,6 +375,56 @@ pub enum BundlrAction {
     Balance,
     /// Withdraw funds from bundlr
     Withdraw,
+}
+
+#[derive(Subcommand)]
+pub enum ArdriveCommand {
+    /// Upload a file to ArDrive
+    Upload {
+        /// Path to the file to upload
+        file: std::path::PathBuf,
+
+        /// Optional bucket name
+        #[clap(short, long)]
+        bucket: Option<String>,
+    },
+
+    /// List contents of a bucket
+    List {
+        /// Optional bucket name
+        #[clap(short, long)]
+        bucket: Option<String>,
+    },
+
+    /// Show info about an item
+    Info {
+        /// Item id
+        id: String,
+    },
+
+    /// Delete an item
+    Delete {
+        /// Item id
+        id: String,
+    },
+    /// Export (set) an ArDrive wallet file for CLI usage
+    #[clap(alias = "export")]
+    SetWallet {
+        /// Path to the ardrive wallet JSON file
+        wallet: std::path::PathBuf,
+    },
+    /// List ArDrive drives accessible by the wallet
+    ListDrives {
+        /// Optional path to the ardrive wallet JSON file (overrides stored wallet)
+        #[clap(short, long, value_name = "WALLET")]
+        wallet: Option<std::path::PathBuf>,
+    },
+    /// List all drives (detailed) accessible by the wallet
+    ListAllDrives {
+        /// Optional path to the ardrive wallet JSON file (overrides stored wallet)
+        #[clap(short, long, value_name = "WALLET")]
+        wallet: Option<std::path::PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]

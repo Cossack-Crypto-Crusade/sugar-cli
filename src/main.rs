@@ -14,7 +14,7 @@ use console::style;
 use sugar_cli::{
     airdrop::{process_airdrop, AirdropArgs},
     bundlr::{process_bundlr, BundlrArgs},
-    cli::{Cli, CollectionSubcommands, Commands, ConfigSubcommands, FreezeCommand, GuardCommand},
+    cli::{Cli, CollectionSubcommands, Commands, ConfigSubcommands, FreezeCommand, GuardCommand, ArdriveCommand},
     collections::{process_set_collection, SetCollectionArgs},
     constants::{COMPLETE_EMOJI, ERROR_EMOJI},
     create_config::{process_create_config, CreateConfigArgs},
@@ -30,6 +30,15 @@ use sugar_cli::{
     },
     hash::{process_hash, HashArgs},
     import_nfts::{process_import_nfts_cmd, ImportNFTsArgs},
+    ardrive::{
+        process_ardrive_upload,
+        process_ardrive_list,
+        process_ardrive_info,
+        process_ardrive_delete,
+        process_ardrive_set_wallet,
+        process_ardrive_list_drives,
+        process_ardrive_list_all_drives,
+    },
     launch::{process_launch, LaunchArgs},
     mint::{process_mint, MintArgs},
     parse::parse_sugar_errors,
@@ -517,6 +526,29 @@ async fn run() -> Result<()> {
             })
             .await?
         }
+        Commands::Ardrive { command } => match command {
+            ArdriveCommand::Upload { file, bucket } => {
+                process_ardrive_upload(file, bucket)?;
+            }
+            ArdriveCommand::SetWallet { wallet } => {
+                process_ardrive_set_wallet(wallet)?;
+            }
+            ArdriveCommand::ListDrives { wallet } => {
+                process_ardrive_list_drives(wallet)?;
+            }
+            ArdriveCommand::ListAllDrives { wallet } => {
+                process_ardrive_list_all_drives(wallet)?;
+            }
+            ArdriveCommand::List { bucket } => {
+                process_ardrive_list(bucket)?;
+            }
+            ArdriveCommand::Info { id } => {
+                process_ardrive_info(id)?;
+            }
+            ArdriveCommand::Delete { id } => {
+                process_ardrive_delete(id)?;
+            }
+        },
         Commands::Validate {
             assets_dir,
             strict,
