@@ -68,6 +68,7 @@
             # Ensure ~/bin exists and is at the front of PATH
             mkdir -p $HOME/bin
             export PATH="$HOME/bin:$PATH"
+            pnpm i
 
             # Helper to install sugar to ~/bin
             install-sugar() {

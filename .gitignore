@@ -6,3 +6,5 @@ sugar.log
 test_item
 /.idea
 codeql-db
+node_modules
+pnpm-lock.yaml
