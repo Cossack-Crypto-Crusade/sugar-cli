@@ -79,3 +79,11 @@ sugar launch
 ```
 
 At the end of the execution of the `launch` command, the Candy Machine will be deployed on-chain.
+
+
+
+# Using the default stored wallet:
+sugar ardrive list-drives -d [ardrive-id]
+
+# Or with a specific wallet file:
+sugar ardrive list-drives -w /path/to/wallet.json -d [ardrive-id]

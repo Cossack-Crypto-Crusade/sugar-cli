@@ -413,17 +413,25 @@ pub enum ArdriveCommand {
         /// Path to the ardrive wallet JSON file
         wallet: std::path::PathBuf,
     },
-    /// List ArDrive drives accessible by the wallet
+    /// List contents of a specific ArDrive drive
     ListDrives {
         /// Optional path to the ardrive wallet JSON file (overrides stored wallet)
         #[clap(short, long, value_name = "WALLET")]
         wallet: Option<std::path::PathBuf>,
+
+        /// ID of the drive to list (required)
+        #[clap(short, long)]
+        drive_id: String,
     },
     /// List all drives (detailed) accessible by the wallet
     ListAllDrives {
         /// Optional path to the ardrive wallet JSON file (overrides stored wallet)
         #[clap(short, long, value_name = "WALLET")]
         wallet: Option<std::path::PathBuf>,
+
+        /// Optional JSON output file path to save the drive list
+        #[clap(short, long, value_name = "OUTPUT")]
+        output: Option<std::path::PathBuf>,
     },
 }
 

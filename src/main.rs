@@ -533,11 +533,11 @@ async fn run() -> Result<()> {
             ArdriveCommand::SetWallet { wallet } => {
                 process_ardrive_set_wallet(wallet)?;
             }
-            ArdriveCommand::ListDrives { wallet } => {
-                process_ardrive_list_drives(wallet)?;
+            ArdriveCommand::ListDrives { wallet, drive_id } => {
+                process_ardrive_list_drives(wallet, drive_id)?;
             }
-            ArdriveCommand::ListAllDrives { wallet } => {
-                process_ardrive_list_all_drives(wallet)?;
+            ArdriveCommand::ListAllDrives { wallet, output } => {
+                process_ardrive_list_all_drives(wallet, output)?;
             }
             ArdriveCommand::List { bucket } => {
                 process_ardrive_list(bucket)?;

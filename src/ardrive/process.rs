@@ -6,6 +6,73 @@ use std::io::Write;
 use anyhow::{Result, Context};
 use tracing::info;
 use serde_json::Value;
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArDriveDrive {
+    #[serde(rename = "appName")]
+    pub app_name: Option<String>,
+    #[serde(rename = "appVersion")]  
+    pub app_version: Option<String>,
+    #[serde(rename = "arFS")]
+    pub ar_fs: Option<String>,
+    #[serde(rename = "contentType")]
+    pub content_type: Option<String>,
+    #[serde(rename = "driveId")]
+    pub drive_id: Option<String>,
+    #[serde(rename = "entityType")]
+    pub entity_type: Option<String>,
+    pub name: Option<String>,
+    #[serde(rename = "txId")]
+    pub tx_id: Option<String>,
+    #[serde(rename = "unixTime")]
+    pub unix_time: Option<u64>,
+    #[serde(rename = "customMetaDataGqlTags")]
+    pub custom_meta_data_gql_tags: Option<serde_json::Map<String, Value>>,
+    #[serde(rename = "customMetaDataJson")]
+    pub custom_meta_data_json: Option<serde_json::Map<String, Value>>,
+    #[serde(rename = "drivePrivacy")]
+    pub drive_privacy: Option<String>,
+    #[serde(rename = "rootFolderId")]
+    pub root_folder_id: Option<String>,
+    // Optional encrypted fields
+    #[serde(rename = "driveAuthMode")]
+    pub drive_auth_mode: Option<String>,
+    pub cipher: Option<String>,
+    #[serde(rename = "cipherIV")]
+    pub cipher_iv: Option<String>,
+    #[serde(rename = "driveSignatureType")]
+    pub drive_signature_type: Option<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArDriveFile {
+    #[serde(rename = "entityType")]
+    pub entity_type: Option<String>,
+    pub name: Option<String>,
+    #[serde(rename = "dataTxId")]
+    pub data_tx_id: Option<String>,  // Arweave transaction ID for the file data
+    #[serde(rename = "metadataTxId")]
+    pub metadata_tx_id: Option<String>,  // Arweave transaction ID for the metadata
+    #[serde(rename = "parentFolderId")]
+    pub parent_folder_id: Option<String>,
+    pub size: Option<u64>,
+    #[serde(rename = "lastModifiedDate")]
+    pub last_modified_date: Option<u64>,
+    #[serde(rename = "contentType")]
+    pub content_type: Option<String>,
+    #[serde(rename = "dataContentType")]
+    pub data_content_type: Option<String>,
+}
+
+impl ArDriveDrive {
+    /// Find a drive by name or ID from a list of drives
+    pub fn find_in_list<'a>(drives: &'a [ArDriveDrive], name_or_id: &str) -> Option<&'a ArDriveDrive> {
+        drives.iter().find(|d| {
+            d.drive_id.as_deref() == Some(name_or_id) || 
+            d.name.as_deref() == Some(name_or_id)
+        })
+    }
+}
 
 // Placeholder implementations for ArDrive interactions.
 // Replace these with real SDK calls / HTTP requests as needed.
@@ -111,20 +178,55 @@ fn resolve_ardrive_wallet_content(opt_wallet: Option<PathBuf>) -> anyhow::Result
     Err(anyhow::anyhow!("No ardrive wallet provided: pass -w/--wallet, set ARDRIVE_WALLET env var, or run 'sugar ardrive set-wallet <file>' to store one."))
 }
 
-pub fn process_ardrive_list_drives(wallet: Option<PathBuf>) -> Result<()> {
-    info!("ArDrive: list-drives called (wallet override: {:?})", wallet);
+pub fn process_ardrive_list_drives(wallet: Option<PathBuf>, drive_id: String) -> Result<()> {
+    info!("ArDrive: list-drives called (wallet override: {:?}, drive_id: {})", wallet, drive_id);
 
     let content = resolve_ardrive_wallet_content(wallet).map_err(|e| anyhow::anyhow!("{}", e))?;
+    
+    // Create a temporary file for the wallet
+    let mut temp_dir = std::env::temp_dir();
+    temp_dir.push("sugar-cli-wallet.tmp.json");
+    
+    let mut temp_file = fs::File::create(&temp_dir)
+        .context("Failed to create temporary wallet file")?;
+    temp_file.write_all(content.as_bytes())
+        .context("Failed to write wallet content to temporary file")?;
+    
+    // Make sure the file is written and closed
+    drop(temp_file);
 
-    // Placeholder: we don't know the wallet shape here; print a summary and pretend to list drives.
-    println!("Using ardrive wallet ({} bytes).", content.len());
-    println!("(placeholder) Drives:\n- drive_alpha\n- drive_beta\n");
+    info!("Using ardrive wallet ({} bytes) from temporary file", content.len());
 
-    Ok(())
+    // Run ardrive list-drive with our temporary wallet file
+    let output = Command::new("ardrive")
+        .arg("list-drive")
+        .arg("-d")  // or --drive-id
+        .arg(&drive_id)
+        .arg("--wallet-file")
+        .arg(&temp_dir)
+        .output()
+        .context("Failed to execute ardrive list-drive command")?;
+
+    // Clean up the temporary file
+    if let Err(e) = fs::remove_file(&temp_dir) {
+        info!("Note: Failed to clean up temporary wallet file: {}", e);
+    }
+
+    // Print the command output or error
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        println!("{}", stdout);
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!(
+            "ArDrive CLI command failed: {}", stderr
+        ))
+    }
 }
 
-pub fn process_ardrive_list_all_drives(wallet: Option<PathBuf>) -> Result<()> {
-    info!("ArDrive: list-all-drives called (wallet override: {:?})", wallet);
+pub fn process_ardrive_list_all_drives(wallet: Option<PathBuf>, output_path: Option<PathBuf>) -> Result<Vec<ArDriveDrive>> {
+    info!("ArDrive: list-all-drives called (wallet override: {:?}, output: {:?})", wallet, output_path);
 
     // First check if ardrive CLI is available
     let ardrive_version = Command::new("ardrive")
@@ -159,6 +261,7 @@ pub fn process_ardrive_list_all_drives(wallet: Option<PathBuf>) -> Result<()> {
         .arg("list-all-drives")
         .arg("--wallet-file")
         .arg(&temp_dir)
+        .arg("--json") // ensure output is JSON
         .output()
         .context("Failed to execute ardrive list-all-drives command")?;
 
@@ -167,23 +270,110 @@ pub fn process_ardrive_list_all_drives(wallet: Option<PathBuf>) -> Result<()> {
         info!("Note: Failed to clean up temporary wallet file: {}", e);
     }
 
-    // Print the command output or error
+    // Parse the command output or error
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("{}", stdout);
+        let drives: Vec<ArDriveDrive> = serde_json::from_str(&stdout)
+            .context("Failed to parse ArDrive CLI output as Vec<ArDriveDrive>")?;
+        println!("Drives: {}", serde_json::to_string_pretty(&drives).unwrap_or_else(|_| stdout.to_string()));
+
+        // Optionally write to file
+        if let Some(path) = output_path {
+            fs::write(&path, serde_json::to_string_pretty(&drives).context("Failed to serialize drives JSON")?)
+                .context(format!("Failed to write drives to file: {}", path.display()))?;
+            println!("✅ Drives written to {}", path.display());
+        }
+
+        Ok(drives)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(anyhow::anyhow!(
             "ArDrive CLI command failed: {}", stderr
         ));
     }
-
-    Ok(())
 }
 
 /// Debug helper: show which wallet the CLI resolved and print its JSON contents.
 /// Use with an optional wallet path override. This is intended for debugging only
 /// (the wallet contains private keys — don't paste the output publicly).
+/// List all files in a specific drive. Returns a Vec of files with their names and Arweave URLs.
+/// Can filter by file extension using filter_ext (e.g. Some("json") for .json files only).
+pub fn process_ardrive_list_drive_files(
+    wallet: Option<PathBuf>,
+    drive_id: String,
+    output_path: Option<PathBuf>,
+    filter_ext: Option<&str>
+) -> Result<Vec<ArDriveFile>> {
+    info!("ArDrive: list-drive-files called for drive {} (wallet override: {:?}, filter: {:?})", 
+        drive_id, wallet, filter_ext);
+
+    let content = resolve_ardrive_wallet_content(wallet).map_err(|e| anyhow::anyhow!("{}", e))?;
+    
+    // Create a temporary file for the wallet
+    let mut temp_dir = std::env::temp_dir();
+    temp_dir.push("sugar-cli-wallet.tmp.json");
+    
+    let mut temp_file = fs::File::create(&temp_dir)
+        .context("Failed to create temporary wallet file")?;
+    temp_file.write_all(content.as_bytes())
+        .context("Failed to write wallet content to temporary file")?;
+    
+    drop(temp_file);
+
+    // Run ardrive list-files with our temporary wallet file
+    let mut cmd = Command::new("ardrive");
+    cmd.arg("list-files")
+       .arg("--drive-id")
+       .arg(&drive_id)
+       .arg("--wallet-file")
+       .arg(&temp_dir)
+       .arg("--json"); // ensure JSON output
+
+    let output = cmd.output()
+        .context("Failed to execute ardrive list-files command")?;
+
+    // Clean up temp file
+    if let Err(e) = fs::remove_file(&temp_dir) {
+        info!("Note: Failed to clean up temporary wallet file: {}", e);
+    }
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut files: Vec<ArDriveFile> = serde_json::from_str(&stdout)
+            .context("Failed to parse ArDrive CLI output as Vec<ArDriveFile>")?;
+
+        // Filter by extension if requested
+        if let Some(ext) = filter_ext {
+            files.retain(|f| {
+                f.name.as_ref()
+                    .map(|n| n.ends_with(&format!(".{}", ext)))
+                    .unwrap_or(false)
+            });
+        }
+
+        // Print summary
+        println!("Found {} files in drive {}", files.len(), drive_id);
+        
+        // Optionally write to file
+        if let Some(path) = output_path {
+            fs::write(&path, serde_json::to_string_pretty(&files)
+                .context("Failed to serialize files to JSON")?)
+                .context(format!("Failed to write files list to {}", path.display()))?;
+            println!("✅ File list written to {}", path.display());
+        }
+
+        Ok(files)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!("ArDrive CLI command failed: {}", stderr))
+    }
+}
+
+/// Helper function to generate an Arweave URL from a transaction ID
+pub fn get_arweave_url(tx_id: &str) -> String {
+    format!("https://arweave.net/{}", tx_id)
+}
+
 pub fn process_ardrive_show_wallet(wallet: Option<PathBuf>) -> Result<()> {
     info!("ArDrive: show-wallet called (wallet override: {:?})", wallet);
 
