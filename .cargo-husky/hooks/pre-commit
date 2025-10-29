@@ -4,10 +4,42 @@
 # -u : treat unset variables as an error
 set -eu
 
-if ! cargo +nightly fmt -- --check
-then
-    echo "There are some code style issues."
-    echo "Run 'cargo +nightly fmt' first."
+# Prefer plain `cargo fmt` (works in nix dev shells). If that fails and `rustup` exists,
+# try running the formatter under a specific toolchain using `rustup run`.
+# This avoids calling `cargo +nightly ...` which fails when `cargo` isn't the
+# rustup shim (e.g. inside some environments).
+if command -v cargo >/dev/null 2>&1; then
+    if cargo fmt -- --check; then
+        : # formatted
+    else
+        if command -v rustup >/dev/null 2>&1; then
+            # Only attempt nightly if the nightly toolchain is actually installed.
+            if rustup toolchain list 2>/dev/null | grep -E '^nightly' >/dev/null 2>&1; then
+                if rustup run nightly cargo fmt -- --check; then
+                    :
+                else
+                    echo "There are some code style issues."
+                    echo "Run 'rustup run nightly cargo fmt' or 'cargo fmt' first."
+                    exit 1
+                fi
+            else
+                # Nightly isn't installed — fall back to stable (via rustup) or system cargo
+                if rustup run stable cargo fmt -- --check || cargo fmt -- --check; then
+                    :
+                else
+                    echo "There are some code style issues."
+                    echo "Run 'cargo fmt' first (or install nightly: 'rustup toolchain install nightly')."
+                    exit 1
+                fi
+            fi
+        else
+            echo "There are some code style issues."
+            echo "Run 'cargo fmt' first."
+            exit 1
+        fi
+    fi
+else
+    echo "cargo not found in PATH" >&2
     exit 1
 fi
 

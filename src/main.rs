@@ -13,8 +13,16 @@ use clap::Parser;
 use console::style;
 use sugar_cli::{
     airdrop::{process_airdrop, AirdropArgs},
+    ardrive::{
+        process_ardrive_delete, process_ardrive_info, process_ardrive_list,
+        process_ardrive_list_all_drives, process_ardrive_list_drive_files,
+        process_ardrive_list_drives, process_ardrive_set_wallet, process_ardrive_upload,
+    },
     bundlr::{process_bundlr, BundlrArgs},
-    cli::{Cli, CollectionSubcommands, Commands, ConfigSubcommands, FreezeCommand, GuardCommand, ArdriveCommand},
+    cli::{
+        ArdriveCommand, Cli, CollectionSubcommands, Commands, ConfigSubcommands, FreezeCommand,
+        GuardCommand,
+    },
     collections::{process_set_collection, SetCollectionArgs},
     constants::{COMPLETE_EMOJI, ERROR_EMOJI},
     create_config::{process_create_config, CreateConfigArgs},
@@ -30,15 +38,6 @@ use sugar_cli::{
     },
     hash::{process_hash, HashArgs},
     import_nfts::{process_import_nfts_cmd, ImportNFTsArgs},
-    ardrive::{
-        process_ardrive_upload,
-        process_ardrive_list,
-        process_ardrive_info,
-        process_ardrive_delete,
-        process_ardrive_set_wallet,
-        process_ardrive_list_drives,
-        process_ardrive_list_all_drives,
-    },
     launch::{process_launch, LaunchArgs},
     mint::{process_mint, MintArgs},
     parse::parse_sugar_errors,
@@ -535,6 +534,14 @@ async fn run() -> Result<()> {
             }
             ArdriveCommand::ListDrives { wallet, drive_id } => {
                 process_ardrive_list_drives(wallet, drive_id)?;
+            }
+            ArdriveCommand::ListDriveFiles {
+                wallet,
+                drive_id,
+                output,
+                filter,
+            } => {
+                process_ardrive_list_drive_files(wallet, drive_id, output, filter.as_deref())?;
             }
             ArdriveCommand::ListAllDrives { wallet, output } => {
                 process_ardrive_list_all_drives(wallet, output)?;

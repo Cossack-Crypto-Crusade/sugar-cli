@@ -5,22 +5,22 @@ use std::{
     path::Path,
 };
 
-use crate::cache::{Cache, CacheItem, CacheItems, CacheProgram};
 use anyhow::{anyhow, Result};
+
+use crate::cache::{Cache, CacheItem, CacheItems, CacheProgram};
 
 /// Processes a list of Arweave metadata links and generates a sugar-style cache.json
 pub fn process_import(input_file: &Path, output_file: &Path) -> Result<()> {
     // Open the input file
-    let file = File::open(input_file)
-        .map_err(|e| anyhow!("Failed to open input file: {}", e))?;
+    let file = File::open(input_file).map_err(|e| anyhow!("Failed to open input file: {}", e))?;
     let reader = BufReader::new(file);
 
     // Temporary map to collect CacheItems
     let mut items_map: HashMap<String, CacheItem> = HashMap::new();
 
     for (index, line_result) in reader.lines().enumerate() {
-        let metadata_link = line_result
-            .map_err(|e| anyhow!("Failed to read line {}: {}", index + 1, e))?;
+        let metadata_link =
+            line_result.map_err(|e| anyhow!("Failed to read line {}: {}", index + 1, e))?;
         if metadata_link.trim().is_empty() {
             continue;
         }

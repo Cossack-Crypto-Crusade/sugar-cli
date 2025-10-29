@@ -54,6 +54,7 @@
             cmake
             protobuf
             nodejs
+            pnpm
             yarn
             solana-cli
             sugar-cli

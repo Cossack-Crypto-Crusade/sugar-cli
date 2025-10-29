@@ -29,13 +29,30 @@ Give an AI assistant (Copilot-style) exactly the information it needs to make sa
 ---
 
 ## Build / Test / Lint
-- **Build:** `cargo build`
+- Preferred developer environment: use the repository's Nix dev shell so the toolchain and cargo are available by default.
+  This avoids errors like "Command 'cargo' not found" when running tests or builds.
+
+- **Enter dev shell:**
+
+```bash
+# start an interactive dev shell (recommended)
+nix develop
+
+# or run a single command inside the dev shell
+nix develop --command cargo build
+```
+
+- **Build:** `cargo build` (run inside the dev shell or after `nix develop`)
 - **Format:** `cargo fmt` (uses `rustfmt.toml`)
 - **Test:** `cargo test`
-- **Optional Nix environment:** `nix develop --command cargo build`
+- **Package management:** Always use `pnpm` instead of `npm` or `yarn` for all Node.js package operations:
+  - Installing packages: `pnpm add <package>`
+  - Installing dev dependencies: `pnpm add -D <package>`
+  - Global installs: `pnpm add -g <package>`
+  - Running scripts: `pnpm run <script>`
+  - Installing all dependencies: `pnpm install`
 
 ---
-
 ## File map / scope of safe edits
 **Safe to modify:**
 - `src/cli/mod.rs` — CLI argument definitions.
@@ -84,6 +101,7 @@ When adding a new CLI command:
 - Prefer `Cache::write_to_file()`; `write_cache()` does not exist.
 - Keep `file_path` as a `String`.
 - Re-export or make functions `pub` when wiring through `main.rs`.
+- Always use `pnpm` instead of `npm` — the project strictly uses pnpm for package management.
 
 ---
 
@@ -154,6 +172,33 @@ That’s it — keep changes small, run `cargo build`, and report any errors wit
 
 ---
 
+## ArDrive Test Configuration
+
+To ensure Copilot and automated tests use a consistent ArDrive test environment, set the test drive ID in an environment
+variable and use the exact CLI flag the `sugar` command expects (`--drive-id`). Replace the placeholder value below with a
+real drive ID when running integration tests.
+
+Known placeholder: `test-drive-id` (for humans). In automated scripts prefer the env var `TEST_ARDRIVE_DRIVE_ID`.
+
+```bash
+# Default ArDrive Test Drive (replace with a real drive ID for integration tests)
+export TEST_ARDRIVE_DRIVE_ID="4b293556-2c17-4f1d-a29e-d67a5670714c"
+```
+
+Use it with the exact CLI flag. Do not append a `--debug` flag to the `sugar` subcommand (it's not a valid option).
+If you need debug logging, enable `RUST_LOG` in the environment instead:
+
+```bash
+# Run the command using the env var
+sugar ardrive list-drive-files --drive-id "$TEST_ARDRIVE_DRIVE_ID"
+
+# Enable debug logging (preferred) rather than adding an unsupported --debug flag
+RUST_LOG=debug sugar ardrive list-drive-files --drive-id "$TEST_ARDRIVE_DRIVE_ID"
+```
+
+In test scripts, substitute the `test-drive-id` placeholder with `${TEST_ARDRIVE_DRIVE_ID}` when constructing commands.
+
+--- 
 ## Small safety rules
 - Don’t modify `Cargo.toml` or dependency versions unless explicitly requested.
 - Don’t reformat unrelated files.
