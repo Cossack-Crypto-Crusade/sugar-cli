@@ -73,6 +73,7 @@ tracing-subscriber = { version = "0.3.14", features = [
   "registry",
 ] }
 url = "2.2.2"
+odbc-api = "23.0.1"
 
 [dev-dependencies.cargo-husky]
 default-features = false
