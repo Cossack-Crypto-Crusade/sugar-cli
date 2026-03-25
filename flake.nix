@@ -52,6 +52,9 @@
             codeql
             libgit2
             cmake
+            postgresql
+            unixODBC
+            psqlodbc
             protobuf
             nodejs
             pnpm
