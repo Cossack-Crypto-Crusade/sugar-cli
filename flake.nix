@@ -53,6 +53,7 @@
             libgit2
             cmake
             postgresql
+            sqlite
             unixODBC
             psqlodbc
             protobuf
@@ -69,9 +70,11 @@
             rustc --version
             sugar --version
 
+
             # Ensure ~/bin exists and is at the front of PATH
             mkdir -p $HOME/bin
             export PATH="$HOME/bin:$PATH"
+
             pnpm i
 
             # Helper to install sugar to ~/bin
