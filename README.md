@@ -50,13 +50,58 @@ Using Crates.io:
 cargo install sugar-cli
 ```
 
+## Building from Source
 
+### Using Cargo
 
-Build From Source:
+1. Clone the repository:
 
 ```bash
-cargo install --path ./
+git clone https://github.com/metaplex-foundation/sugar.git
+cd sugar
 ```
+
+2. Build the project:
+
+```bash
+cargo build --release
+```
+
+3. Run the binary:
+
+```bash
+./target/release/sugar --help
+```
+
+### Using Nix (recommended for development)
+
+If you have Nix installed, the development environment provides all necessary dependencies:
+
+1. Enter the development shell:
+
+```bash
+nix develop
+```
+
+2. Build the project:
+
+```bash
+cargo build
+```
+
+3. Run the binary:
+
+```bash
+cargo run -- --help
+```
+
+Or run the built binary directly:
+
+```bash
+./target/debug/sugar --help
+```
+
+The Nix shell includes Rust 1.74.0, Node.js, pnpm, and other tools needed for development.
 
 
 

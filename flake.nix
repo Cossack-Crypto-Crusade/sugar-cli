@@ -17,7 +17,7 @@
         };
 
         # 🔒 Pin Rust to match rust-toolchain.toml
-        rust = pkgs.rust-bin.stable."1.68.0".default;
+        rust = pkgs.rust-bin.stable."1.74.0".default;
 
         # Local path to your repo
         src = ./.;
@@ -65,7 +65,7 @@
           ];
 
           shellHook = ''
-            echo "🧁 Entered Sugar CLI dev shell (Rust 1.68.0)"
+            echo "🧁 Entered Sugar CLI dev shell (Rust 1.74.0)"
             export RUST_BACKTRACE=1
             rustc --version
             sugar --version
